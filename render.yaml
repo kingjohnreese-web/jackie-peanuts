@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: jackie-peanuts
+    runtime: node
+    buildCommand: pnpm install && pnpm run build
+    startCommand: node artifacts/api-server/dist/index.mjs
+    envVars:
+      - key: NODE_ENV
+        value: production
