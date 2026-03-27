@@ -6,6 +6,16 @@ import { z } from "zod";
 import { sendEmail, sendVerificationCode, verifyCode, SendEmailSchema, SendVerificationCodeSchema } from "./email";
 import { getEmailLogs } from "./db";
 import { TRPCError } from "@trpc/server";
+import {
+  sendOrderNotification,
+  sendWholesaleNotification,
+  sendSubscriberNotification,
+  sendBroadcastEmail,
+  OrderSchema,
+  WholesaleSchema,
+  SubscriberSchema,
+  BroadcastSchema,
+} from "./jackie-peanuts-service";
 
 export const appRouter = router({
   system: systemRouter,
@@ -83,6 +93,68 @@ export const appRouter = router({
           return logs;
         } catch (error) {
           const message = error instanceof Error ? error.message : "Failed to get email logs";
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message,
+          });
+        }
+      }),
+  }),
+
+  jackiePeanuts: router({
+    sendOrder: publicProcedure
+      .input(OrderSchema)
+      .mutation(async ({ input }) => {
+        try {
+          const result = await sendOrderNotification(input);
+          return result;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to send order notification";
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message,
+          });
+        }
+      }),
+
+    sendWholesale: publicProcedure
+      .input(WholesaleSchema)
+      .mutation(async ({ input }) => {
+        try {
+          const result = await sendWholesaleNotification(input);
+          return result;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to send wholesale notification";
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message,
+          });
+        }
+      }),
+
+    sendSubscriber: publicProcedure
+      .input(SubscriberSchema)
+      .mutation(async ({ input }) => {
+        try {
+          const result = await sendSubscriberNotification(input);
+          return result;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to send subscriber notification";
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message,
+          });
+        }
+      }),
+
+    sendBroadcast: publicProcedure
+      .input(BroadcastSchema)
+      .mutation(async ({ input }) => {
+        try {
+          const result = await sendBroadcastEmail(input);
+          return result;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to send broadcast email";
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message,

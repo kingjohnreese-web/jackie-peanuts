@@ -24,3 +24,15 @@
 - [x] Test verification code generation
 - [x] Test input validation and error handling
 - [x] Final end-to-end testing
+
+## Jackie Peanuts Integration
+- [x] Clone and analyze Jackie Peanuts repository
+- [x] Extract email design and templates
+- [x] Create email templates matching Jackie Peanuts design
+- [x] Implement Jackie Peanuts service module
+- [x] Add endpoints for order notifications
+- [x] Add endpoints for wholesale inquiries
+- [x] Add endpoints for subscriber notifications
+- [x] Add endpoints for broadcast emails
+- [x] Create Render integration guide
+- [x] Write comprehensive tests for Jackie Peanuts service
