@@ -2,9 +2,12 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import { sendEmail, sendVerificationCode, verifyCode, SendEmailSchema, SendVerificationCodeSchema } from "./email";
+import { getEmailLogs } from "./db";
+import { TRPCError } from "@trpc/server";
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -17,12 +20,76 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  email: router({
+    send: publicProcedure
+      .input(SendEmailSchema)
+      .mutation(async ({ input }) => {
+        try {
+          const result = await sendEmail(input);
+          return result;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to send email";
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message,
+          });
+        }
+      }),
+
+    sendVerificationCode: publicProcedure
+      .input(SendVerificationCodeSchema)
+      .mutation(async ({ input }) => {
+        try {
+          const result = await sendVerificationCode(input);
+          return result;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to send verification code";
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message,
+          });
+        }
+      }),
+
+    verifyCode: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+          code: z.string(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        try {
+          const result = await verifyCode(input.email, input.code);
+          return result;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to verify code";
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message,
+          });
+        }
+      }),
+
+    getLogs: publicProcedure
+      .input(
+        z.object({
+          limit: z.number().int().min(1).max(100).optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        try {
+          const logs = await getEmailLogs(input.limit || 50);
+          return logs;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to get email logs";
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message,
+          });
+        }
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

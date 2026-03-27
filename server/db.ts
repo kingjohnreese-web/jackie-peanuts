@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, and, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, emailLogs, InsertEmailLog, verificationCodes, InsertVerificationCode } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,109 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Email logging queries
+export async function createEmailLog(data: InsertEmailLog) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create email log: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(emailLogs).values(data);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to create email log:", error);
+    throw error;
+  }
+}
+
+export async function updateEmailLog(id: number, data: Partial<InsertEmailLog>) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update email log: database not available");
+    return null;
+  }
+
+  try {
+    await db.update(emailLogs).set(data).where(eq(emailLogs.id, id));
+  } catch (error) {
+    console.error("[Database] Failed to update email log:", error);
+    throw error;
+  }
+}
+
+export async function getEmailLogs(limit: number = 50) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get email logs: database not available");
+    return [];
+  }
+
+  try {
+    return await db.select().from(emailLogs).orderBy(emailLogs.createdAt).limit(limit);
+  } catch (error) {
+    console.error("[Database] Failed to get email logs:", error);
+    return [];
+  }
+}
+
+// Verification code queries
+export async function createVerificationCode(data: InsertVerificationCode) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create verification code: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(verificationCodes).values(data);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to create verification code:", error);
+    throw error;
+  }
+}
+
+export async function getValidVerificationCode(email: string, code: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get verification code: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(verificationCodes)
+      .where(
+        and(
+          eq(verificationCodes.email, email),
+          eq(verificationCodes.code, code),
+          eq(verificationCodes.used, 0),
+          gt(verificationCodes.expiresAt, new Date())
+        )
+      )
+      .limit(1);
+
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error("[Database] Failed to get verification code:", error);
+    return null;
+  }
+}
+
+export async function markVerificationCodeAsUsed(id: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot mark verification code as used: database not available");
+    return null;
+  }
+
+  try {
+    await db.update(verificationCodes).set({ used: 1 }).where(eq(verificationCodes.id, id));
+  } catch (error) {
+    console.error("[Database] Failed to mark verification code as used:", error);
+    throw error;
+  }
+}
